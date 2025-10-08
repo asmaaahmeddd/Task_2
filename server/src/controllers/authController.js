@@ -30,9 +30,32 @@ const loginSchema = Joi.object({
 });
 
 // TODO: implement login function
+// authController.js
 export async function login(req, res, next) {
- 
+  try {
+    // 1️⃣ Validate the request body
+    const { value, error } = loginSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: error.message });
+
+    // 2️⃣ Find user by email
+    const user = await User.findOne({ email: value.email });
+    if (!user) return res.status(401).json({ message: 'Invalid email or password' });
+
+    // 3️⃣ Compare password
+    const isMatch = await user.comparePassword(value.password);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
+
+    // 4️⃣ Generate JWT token
+    const token = signToken(user);
+
+    // 5️⃣ Return token + public user info
+    res.json({ token, user: publicUser(user) });
+
+  } catch (err) {
+    next(err);
+  }
 }
+
 
 export async function me(req, res) {
   const user = await User.findById(req.user.id).lean();
